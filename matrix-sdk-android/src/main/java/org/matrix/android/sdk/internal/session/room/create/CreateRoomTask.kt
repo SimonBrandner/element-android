@@ -128,7 +128,7 @@ internal class DefaultCreateRoomTask @Inject constructor(
     }
 
     private suspend fun setReadMarkers(roomId: String) {
-        val setReadMarkerParams = SetReadMarkersTask.Params(roomId, forceReadReceipt = true, forceReadMarker = true)
+        val setReadMarkerParams = SetReadMarkersTask.Params(roomId, forceReadReceipt = true, forceReadMarker = true, hidden = true)
         return readMarkersTask.execute(setReadMarkerParams)
     }
 

@@ -156,6 +156,8 @@ class VectorPreferences @Inject constructor(private val context: Context) {
 
         const val SETTINGS_LABS_VOICE_MESSAGE = "SETTINGS_LABS_VOICE_MESSAGE"
 
+        const val SETTINGS_LABS_HIDDEN_READ_RECEIPTS = "SETTINGS_LABS_HIDDEN_READ_RECEIPTS"
+
         private const val SETTINGS_DEVELOPER_MODE_PREFERENCE_KEY = "SETTINGS_DEVELOPER_MODE_PREFERENCE_KEY"
         private const val SETTINGS_LABS_SHOW_HIDDEN_EVENTS_PREFERENCE_KEY = "SETTINGS_LABS_SHOW_HIDDEN_EVENTS_PREFERENCE_KEY"
         private const val SETTINGS_LABS_ENABLE_SWIPE_TO_REPLY = "SETTINGS_LABS_ENABLE_SWIPE_TO_REPLY"
@@ -992,5 +994,9 @@ class VectorPreferences @Inject constructor(private val context: Context) {
 
     fun labsUseVoiceMessage(): Boolean {
         return defaultPrefs.getBoolean(SETTINGS_LABS_VOICE_MESSAGE, false)
+    }
+
+    fun labsSendHiddenReadReceipts(): Boolean {
+        return defaultPrefs.getBoolean(SETTINGS_LABS_HIDDEN_READ_RECEIPTS, false)
     }
 }

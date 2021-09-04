@@ -38,6 +38,8 @@ import org.matrix.android.sdk.internal.session.room.tags.TagBody
 import org.matrix.android.sdk.internal.session.room.timeline.EventContextResponse
 import org.matrix.android.sdk.internal.session.room.timeline.PaginationResponse
 import org.matrix.android.sdk.internal.session.room.typing.TypingBody
+import org.matrix.android.sdk.internal.session.room.read.ReadReceiptBody
+import org.matrix.android.sdk.internal.session.room.read.ReadMarkersBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -151,7 +153,7 @@ internal interface RoomAPI {
      */
     @POST(NetworkConstants.URI_API_PREFIX_PATH_R0 + "rooms/{roomId}/read_markers")
     suspend fun sendReadMarker(@Path("roomId") roomId: String,
-                               @Body markers: Map<String, String>)
+                               @Body body: ReadMarkersBody)
 
     /**
      * Send receipt to a room
@@ -159,7 +161,8 @@ internal interface RoomAPI {
     @POST(NetworkConstants.URI_API_PREFIX_PATH_R0 + "rooms/{roomId}/receipt/{receiptType}/{eventId}")
     suspend fun sendReceipt(@Path("roomId") roomId: String,
                             @Path("receiptType") receiptType: String,
-                            @Path("eventId") eventId: String)
+                            @Path("eventId") eventId: String,
+                            @Body body: ReadReceiptBody)
 
     /**
      * Invite a user to the given room.

@@ -32,6 +32,7 @@ import org.matrix.android.sdk.internal.session.sync.ReadReceiptHandler
 import org.matrix.android.sdk.internal.session.sync.RoomFullyReadHandler
 import org.matrix.android.sdk.internal.task.Task
 import org.matrix.android.sdk.internal.util.awaitTransaction
+import org.matrix.android.sdk.internal.session.room.read.ReadReceiptBody
 import io.realm.Realm
 import org.matrix.android.sdk.internal.network.GlobalErrorReceiver
 import timber.log.Timber
@@ -44,13 +45,15 @@ internal interface SetReadMarkersTask : Task<SetReadMarkersTask.Params, Unit> {
             val roomId: String,
             val fullyReadEventId: String? = null,
             val readReceiptEventId: String? = null,
+            val hidden: Boolean? = false,
             val forceReadReceipt: Boolean = false,
-            val forceReadMarker: Boolean = false
+            val forceReadMarker: Boolean = false,
     )
 }
 
-private const val READ_MARKER = "m.fully_read"
+//private const val READ_MARKER = "m.fully_read"
 private const val READ_RECEIPT = "m.read"
+//private const val HIDDEN_READ_RECEIPT = "org.matrix.msc2285"
 
 internal class DefaultSetReadMarkersTask @Inject constructor(
         private val roomAPI: RoomAPI,
@@ -62,7 +65,7 @@ internal class DefaultSetReadMarkersTask @Inject constructor(
 ) : SetReadMarkersTask {
 
     override suspend fun execute(params: SetReadMarkersTask.Params) {
-        val markers = mutableMapOf<String, String>()
+        val markers = ReadMarkersBody()
         Timber.v("Execute set read marker with params: $params")
         val latestSyncedEventId = latestSyncedEventId(params.roomId)
         val fullyReadEventId = if (params.forceReadMarker) {
@@ -79,7 +82,7 @@ internal class DefaultSetReadMarkersTask @Inject constructor(
             if (LocalEcho.isLocalEchoId(fullyReadEventId)) {
                 Timber.w("Can't set read marker for local event $fullyReadEventId")
             } else {
-                markers[READ_MARKER] = fullyReadEventId
+                markers.fullyRead = fullyReadEventId
             }
         }
         if (readReceiptEventId != null
@@ -87,25 +90,26 @@ internal class DefaultSetReadMarkersTask @Inject constructor(
             if (LocalEcho.isLocalEchoId(readReceiptEventId)) {
                 Timber.w("Can't set read receipt for local event $readReceiptEventId")
             } else {
-                markers[READ_RECEIPT] = readReceiptEventId
+                markers.read = readReceiptEventId
             }
         }
 
         val shouldUpdateRoomSummary = readReceiptEventId != null && readReceiptEventId == latestSyncedEventId
-        if (markers.isNotEmpty() || shouldUpdateRoomSummary) {
+        if (markers.fullyRead != null || markers.read != null || shouldUpdateRoomSummary) {
             updateDatabase(params.roomId, markers, shouldUpdateRoomSummary)
         }
-        if (markers.isNotEmpty()) {
+        if (markers.fullyRead != null || markers.read != null) {
             executeRequest(
                     globalErrorReceiver,
                     canRetry = true
             ) {
-                if (markers[READ_MARKER] == null) {
+                if (markers.fullyRead == null) {
                     if (readReceiptEventId != null) {
-                        roomAPI.sendReceipt(params.roomId, READ_RECEIPT, readReceiptEventId)
+                        roomAPI.sendReceipt(params.roomId, READ_RECEIPT, readReceiptEventId, ReadReceiptBody(true))
                     }
                 } else {
                     // "m.fully_read" value is mandatory to make this call
+                    markers.hidden = true
                     roomAPI.sendReadMarker(params.roomId, markers)
                 }
             }
@@ -117,10 +121,10 @@ internal class DefaultSetReadMarkersTask @Inject constructor(
                 TimelineEventEntity.latestEvent(realm, roomId = roomId, includesSending = false)?.eventId
             }
 
-    private suspend fun updateDatabase(roomId: String, markers: Map<String, String>, shouldUpdateRoomSummary: Boolean) {
+    private suspend fun updateDatabase(roomId: String, markers: ReadMarkersBody, shouldUpdateRoomSummary: Boolean) {
         monarchy.awaitTransaction { realm ->
-            val readMarkerId = markers[READ_MARKER]
-            val readReceiptId = markers[READ_RECEIPT]
+            val readMarkerId = markers.fullyRead
+            val readReceiptId = markers.read
             if (readMarkerId != null) {
                 roomFullyReadHandler.handle(realm, roomId, FullyReadContent(readMarkerId))
             }
